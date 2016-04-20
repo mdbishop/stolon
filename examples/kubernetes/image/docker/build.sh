@@ -14,9 +14,9 @@ echo "Building ${REGISTRY}${IMAGE}:${VERSION}"
 echo "BRANCH: $BRANCH"
 echo "COMMIT: $COMMIT"
 
-#sed -l -e "s/BRANCH--/${BRANCH}/g" -e "s/COMMIT--/${COMMIT}/g" Dockerfile > Dockerfile.tmp
+sed -l -e "s/BRANCH--/${BRANCH}/g" -e "s/COMMIT--/${COMMIT}/g" Dockerfile > Dockerfile.tmp
 
-gcloud docker -a
+gcloud docker push -a
 docker --tls build --pull --rm -t ${REGISTRY}${IMAGE}:${VERSION} -f Dockerfile.tmp .
 docker --tls push ${REGISTRY}${IMAGE}:${VERSION}
 docker --tls tag  ${REGISTRY}${IMAGE}:${VERSION} ${REGISTRY}${IMAGE}:latest

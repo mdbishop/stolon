@@ -1,36 +1,69 @@
+---
 apiVersion: v1
-kind: ReplicationController
+kind: Service
 metadata:
-  name: stolon-proxy-rc
+  name: postgres-proxy
+  annotations:
+    description: Postgres HA
+    contact: Michael Bishop
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    stolon-proxy: "true"
+    stolon-cluster: "kube-postgres"
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    name: stolon-proxy
+  annotations:
+    description: Postgres HA
+    contact: Michael Bishop
 spec:
   replicas: 1
   selector:
-    name: stolon-proxy
+    matchLabels:
+      stolon-cluster: "kube-postgres"
+      stolon-proxy: "true"
+      name: stolon-proxy
   template:
     metadata:
       labels:
         name: stolon-proxy
-        stolon-cluster: "kube-stolon"
+        stolon-cluster: "kube-postgres"
         stolon-proxy: "true"
+      annotations:
+        description: Postgres HA
+        contact: Michael Bishop
     spec:
       containers:
       - name: stolon-proxy
-        image: sorintlab/stolon:master
+        image: sorintlab/stolon:latest
         env:
           - name: PROXY
             value: "true"
           - name: STPROXY_CLUSTER_NAME
           # TODO(sgotti) Get cluster name from "stoloncluster" label using a downward volume api instead of duplicating the name here
-            value: "kube-stolon"
+            value: "kube-postgres"
           - name: STPROXY_STORE_BACKEND
-            value: "etcd" # Or consul
+            value: "consul" # Or consul
           - name: STPROXY_STORE_ENDPOINTS
-            value: "10.245.1.1:2379"
+            value: "consul.corp.advisorconnect.co:8500"
             # Enable debugging
           - name: STPROXY_DEBUG
             value: "true"
         ports:
           - containerPort: 5432
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: 0.75
+          limits:
+            memory: "1Gi"
+            cpu: 2
         readinessProbe:
           tcpSocket:
             port: 5432
